@@ -1,0 +1,165 @@
+<table class="table table-padded animate-bottom " id="factures">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>No</th>
+            <th class="text-right">Client</th>
+            <th>Type</th>
+            <th>Total HT</th>
+            <th>Taxe</th>
+            <th class="text-center">Montant à regler</th>
+            <th class="text-center">Montant payé</th>
+            <th>Etat</th>
+            <th class="text-center">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for i in invoices %}
+
+        {% set extravape = false %}
+        {% set factureMaitre = false %}
+        {% set empty = false %}
+
+        {% if i.devis is defined %}
+
+            {% set client  =  i.client %}
+
+            {% set devis = i.devis %}
+
+        {% else %}
+
+            {% if i.bonDeCommandes|length > 0 %}
+            
+                {% set client  =  i.bonDeCommandes[0].client %}
+
+                {% set devis = i.bonDeCommandes[0].devis %}
+
+                {% set extravape = true %}
+                
+                {% set factureMaitre = true %}
+
+            {% else %}
+                {% set empty = true %}
+            {% endif %}
+
+
+        {% endif %}
+
+        {% if not empty %}
+        
+            <tr>
+                <td data-source="acompte solde {{ i.numero }} {{ client.raisonSocial }} {{ client.lastname }} {{ client.firstname }} {{ i.date|date('d.m.Y') }}">{{ i.date|date('d.m.Y') }}</td>
+                <td>
+                    {{ i.numero }} <br>
+                    {% if extravape %}
+                        {% set excelPath = path('back_facture_excel', {id: i.id, extravape: 1}) %}
+                    {% else %}
+                        {% set excelPath = path('back_facture_excel', {id: i.id}) %}
+                    {% endif %}
+
+                    {% if client.id == 1 %}
+                        <a href="{{ excelPath }}" class="btn mt-2 btn-primary btn-sm">
+                            <i class="os-icon os-icon-download"></i>
+                            Facture Excel
+                        </a>
+                    {% endif %}
+                </td>
+
+                <td class="text-right">
+                    
+                    {% if extravape %}
+                        {{ client.lastname ~ ' ' ~ client.firstname }} <br>
+                    
+                        {{ client.raisonSocial }}
+                    {% else %}
+                        
+                        {% if devis.boutique %}
+                            {{ devis.boutique.prenom ~ ' ' ~ devis.boutique.nom }} <br>
+                            
+                            {{ devis.boutique.nomShop }}
+                        {% else %}    
+                            {{ client.lastname ~ ' ' ~ client.firstname }} <br>
+                        
+                            {{ client.raisonSocial }}
+                        {% endif %}
+
+                    {% endif %}
+
+                    
+                </td>
+
+                <td>
+                    {% if i.soldeFinal %}
+                        SOLDE
+                        {% if i.balance < 0 %}
+                            <br>
+                            <small class="text-danger">
+                                {{ i.balance|number_format(2, ',', ' ') }}€
+                            </small>
+                        {% endif %}
+                    {% endif %}
+
+                </td>
+
+                <td>
+                    {{ i.totalHt }}
+                </td>
+
+                <td>
+                    {{ i.tva }}
+                </td>
+
+                <td class="text-center">
+                    <span class="{% if i.balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ i.montantAPayer|number_format(2, ',', ' ')  }}€
+                    </span>
+                </td>
+                <td>
+                    {% if i.montantPayer != i.montantAPayer %}
+                        <span class="text-danger">
+                            {{ i.montantPayer|number_format(2, ',', ' ') }}€
+                        </span>
+                    {% else %}
+                        <span class="text-success">
+                            {{ i.montantPayer|number_format(2, ',', ' ') }}€
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="text-center">
+                        {% if i.estPayer %}
+                            <a class="badge badge-success-inverted" href="">Payé le {{ i.datePaiement|date('d/m/Y') }}</a>
+                        {% else %}
+                            <a class="badge badge-danger-inverted" href="">Non Payé</a>
+                        {% endif %}
+                    </div>
+
+                    {% include "back/commande/_paiement.html.twig" %}
+                </td>
+                <td>
+                    
+                    {% set filename = "Facture-" %}
+                    
+                    <a target="_blank" href="{{ asset('pdf/order/' ~ filename ~  i.numero ~ '.pdf' ) }}" class="btn btn-link"><i class="os-icon os-icon-eye"></i> Voir</a>
+                
+                    {% if extravape %}
+                    
+                        <a href="{{ path('back_invoice_regenerate_invoice_extravape', {id:i.id}) }}" class="btn btn-link"><i class="os-icon os-icon-refresh-cw"></i>  Régénérer </a>
+                    
+                    {% else %}
+                        
+                        {% if devis.payerParCarte %}
+                            <a href="{{ path('back_prestashop_invoice_regenerate_invoice', {id:i.id}) }}" class="btn btn-link"><i class="os-icon os-icon-refresh-cw"></i>  Régénérer </a>
+                        {% else %}
+                            <a href="{{ path('back_invoice_regenerate_invoice', {id:i.id}) }}" class="btn btn-link"><i class="os-icon os-icon-refresh-cw"></i>  Régénérer </a>
+                        {% endif %}
+
+                    {% endif %}
+
+                </td>
+            </tr>
+        
+        {% endif %}
+    {% endfor %}
+    </tbody>
+</table>
